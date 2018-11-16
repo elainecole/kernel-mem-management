@@ -1,5 +1,5 @@
-# TODO: Change this to the location of your kernel source code
-KERNEL_SOURCE=/tmp/compile/brian.kocoloski/linux_source/linux
+# Change this to the location of your kernel source code
+KERNEL_SOURCE=/tmp/compile/emcole/linux_source/linux
 
 INCLUDE_DIR=$(PWD)/../include
 EXTRA_CFLAGS += -DMODULE=1 -D__KERNEL__=1 -I$(INCLUDE_DIR)

@@ -26,6 +26,9 @@ struct State { // data structure to track what physical mem has been allocated f
   atomic_t * page_alloc; // page allocated for process (so it can be freed)
 } state;
 
+atomic_t alloc_page; // increment every time allocate new struct page
+atomic_t free_page; // increment every time free struct page
+
 /*
  * do_fault()
  *    allocs new page of physical mem and updates
@@ -43,6 +46,7 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
     printk(KERN_ERR "Memory allocation fail\n");
     return VM_FAULT_OOM;
   }
+  atomic_inc(&alloc_page);
 
   // update process' page tables to map faulting virtual address to new physical address (page)
   state.page_alloc = (void*) (long) remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
@@ -91,6 +95,8 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   printk(KERN_INFO "paging_vma_close() invoked\n");
   if (atomic_dec_and_test(&state.counter)) { // counter now is 0
     // TODO free dynamically allocated mem (__free_page and kfree)
+    // if successful: atomic_inc(&free_page);
+
   }
 }
 

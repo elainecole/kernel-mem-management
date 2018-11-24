@@ -26,6 +26,8 @@ struct State { // data structure to track what physical mem has been allocated f
   atomic_t * page_alloc; // page allocated for process (so it can be freed)
 } state;
 
+struct page * page; // physical mem page ptr to allocate
+
 atomic_t alloc_page; // increment every time allocate new struct page
 atomic_t free_page; // increment every time free struct page
 
@@ -35,7 +37,6 @@ atomic_t free_page; // increment every time free struct page
  *    process' page tables
  */
 static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
-  struct page * page;
 
   printk(KERN_INFO "paging_vma_fault() invoked: took a page fault at VA 0x%lx\n", fault_address);
 
@@ -49,8 +50,9 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   atomic_inc(&alloc_page);
 
   // update process' page tables to map faulting virtual address to new physical address (page)
-  state.page_alloc = (void*) (long) remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
+  state.page_alloc = (void *) (long) remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
   if (state.page_alloc == 0) { // success page table update
+    state.page_alloc = (void *) page_to_pfn(page); // remember this page (to free later)
     return VM_FAULT_NOPAGE; // success message
   }
   printk(KERN_ERR "Failure in updating process' page tables\n");
@@ -80,9 +82,11 @@ static int paging_vma_fault(struct vm_fault * vmf) {
  *    reference counter
  */
 static void paging_vma_open(struct vm_area_struct * vma) {
+  void * ptr;
   printk(KERN_INFO "paging_vma_open() invoked\n");
-  // TODO retreive ptr to data struct state
+  ptr = vma->vm_private_data; // retreive ptr to data struct state
   atomic_inc(&state.counter);
+  printk(KERN_INFO "paging_vma_open(): state.counter is now %d\n", atomic_read(&state.counter));
 }
 
 /*
@@ -92,11 +96,16 @@ static void paging_vma_open(struct vm_area_struct * vma) {
  *    counter (if 0, free dynamically alloc mem)
  */
 static void paging_vma_close(struct vm_area_struct * vma) {
+  void * ptr;
   printk(KERN_INFO "paging_vma_close() invoked\n");
+  printk(KERN_INFO "paging_vma_close(): state.counter is %d\n", atomic_read(&state.counter));
+  ptr = vma->vm_private_data; // retreive ptr to data struct state
   if (atomic_dec_and_test(&state.counter)) { // counter now is 0
-    // TODO free dynamically allocated mem (__free_page and kfree)
-    // if successful: atomic_inc(&free_page);
-
+    // free dynamically allocated mem (__free_page and kfree)
+    if (page) {
+      __free_page(page);
+      atomic_inc(&free_page);
+    }
   }
 }
 
@@ -137,7 +146,14 @@ static struct miscdevice dev_handle = {
 /*** Kernel module initialization and teardown ***/
 static int kmod_paging_init(void) {
   int status;
-  atomic_set(&state.counter, 0); // init reference counter
+  // atomic_set(&state.counter, 0); // init reference counter
+
+  // page = (page *) kmalloc(sizeof(page),  GFP_KERNEL);
+	// if (page == NULL) {
+	// 	printk("There was not enough kernel memory to allocate page");
+	// 	page = (page *) 0;
+	// 	return 0;
+	// }
 
   /* Create a character device to communicate with user-space via file I/O operations */
   status = misc_register(&dev_handle);
@@ -154,6 +170,7 @@ static int kmod_paging_init(void) {
 static void kmod_paging_exit(void) {
   /* Deregister our device file */
   misc_deregister(&dev_handle);
+  printk(KERN_INFO "Pages allocated %d times, freed %d times\n", atomic_read(&alloc_page), atomic_read(&free_page));
 
   printk(KERN_INFO "Unloaded kmod_paging module\n");
 }

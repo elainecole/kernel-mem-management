@@ -21,9 +21,15 @@
  *      file
  */
 
+ typedef struct {
+     struct page * ptr;
+     struct list_head node;
+ } Link;
+
 struct State { // data structure to track what physical mem has been allocated for a process
   atomic_t counter; // atomic reference counter
   atomic_t * page_alloc; // page allocated for process (so it can be freed)
+  struct Link * linked_list;
 } state;
 
 struct page * page; // physical mem page ptr to allocate
@@ -146,7 +152,7 @@ static struct miscdevice dev_handle = {
 /*** Kernel module initialization and teardown ***/
 static int kmod_paging_init(void) {
   int status;
-  // atomic_set(&state.counter, 0); // init reference counter
+  atomic_set(&state.counter, 1); // init reference counter
 
   // page = (page *) kmalloc(sizeof(page),  GFP_KERNEL);
 	// if (page == NULL) {

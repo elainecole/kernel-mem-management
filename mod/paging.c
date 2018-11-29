@@ -33,7 +33,7 @@ struct State { // data structure to track what physical mem has been allocated f
 
 struct page * page; // physical mem page ptr to allocate
 
-state * temp_state_ptr;
+struct state * temp_state_ptr;
 wrapper * temp_wrapper_ptr;
 
 atomic_t alloc_page; // increment every time allocate new struct page
@@ -63,8 +63,8 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
     temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
     //assign temp_page to the pointer that refereces one page in the Link
     temp_wrapper_ptr->ptr = page;
-    INIT_LIST_HEAD(&temp_wrapper_ptr->node);
-    list_add(&temp_wrapper_ptr->node, &vma->vm_private_data->starter);
+    INIT_LIST_HEAD(&(temp_wrapper_ptr->node));
+    list_add(&(temp_wrapper_ptr->node), (vma->vm_private_data->starter));
     atomic_inc(&alloc_page);
     return VM_FAULT_NOPAGE; // success message
   }
@@ -98,7 +98,7 @@ static void paging_vma_open(struct vm_area_struct * vma) {
   void * ptr;
   printk(KERN_INFO "paging_vma_open() invoked\n");
   ptr = vma->vm_private_data; // retreive ptr to data struct state
-  atomic_inc(&ptr->counter);
+  atomic_inc(&(ptr->counter));
 }
 
 /*
@@ -114,11 +114,11 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   printk(KERN_INFO "paging_vma_close() invoked\n");
   printk(KERN_INFO "paging_vma_close(): state.counter is %d\n", atomic_read(&state.counter));
   ptr = vma->vm_private_data; // retreive ptr to data struct state
-  if (atomic_dec_and_test(&ptr->counter)) { // counter now is 0
+  if (atomic_dec_and_test(&(ptr->counter))) { // counter now is 0
     // free dynamically allocated mem (__free_page and kfree)
-    list_for_each_entry_safe(cursor, t, &ptr->starter,node) {
+    list_for_each_entry_safe(cursor, t, &(ptr->starter),node) {
        __free_page(cursor->ptr);
-       list_del(&cursor->node);
+       list_del(&(cursor->node));
        kfree(cursor);
      }
   }
@@ -143,8 +143,8 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
 
   // init state struct
   temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
-  atomic_set(&temp_state_ptr->counter, 1);
-  INIT_LIST_HEAD(&temp_state_ptr->starter);
+  atomic_set(&(temp_state_ptr->counter), 1);
+  INIT_LIST_HEAD(&(temp_state_ptr->starter));
   vma->vm_private_data = temp_state_ptr;
 
   printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",

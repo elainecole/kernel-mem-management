@@ -82,7 +82,7 @@ static void
 paging_vma_open(struct vm_area_struct * vma)
 {
     void *ptr = vma->vm_private_data;
-    atomic_inc(ptr->counter);
+    atomic_inc(&ptr->counter);
     printk(KERN_INFO "paging_vma_open() invoked\n");
 }
 
@@ -93,10 +93,11 @@ paging_vma_close(struct vm_area_struct * vma)
     wrapper *t;
     printk(KERN_INFO "paging_vma_close() invoked\n");
     void *ptr = vma->vm_private_data;
-    if(atomic_dec_and_test(ptr->counter))
+    if(atomic_dec_and_test(&ptr->counter))
     {
          list_for_each_entry_safe(cursor, t, &ptr->starter,node)
          {
+           __free_page(&cursor->
            list_del(&cursor->node);
            kfree(cursor); 
          }
@@ -128,7 +129,7 @@ paging_mmap(struct file           * filp,
     // intialized the state struct 
     temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
     temp_state_ptr->counter = 1;
-    INIT_LIST_HEAD(temp_state_ptr->starter);
+    INIT_LIST_HEAD(&temp_state_ptr->starter);
     vma->vm_private_data = temp_state_ptr;
     
     printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",

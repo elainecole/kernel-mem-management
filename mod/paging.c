@@ -62,7 +62,7 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
     temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
     //assign temp_page to the pointer that refereces one page in the Link
     temp_wrapper_ptr->ptr = page;
-    ptr = (void *) vma->vm_private_data; // retreive ptr to data struct state
+    ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
     INIT_LIST_HEAD(&(temp_wrapper_ptr->node));
     list_add(&(temp_wrapper_ptr->node), &(ptr->starter));
     atomic_inc(&alloc_page);
@@ -97,7 +97,7 @@ static int paging_vma_fault(struct vm_fault * vmf) {
 static void paging_vma_open(struct vm_area_struct * vma) {
   state * ptr;
   printk(KERN_INFO "paging_vma_open() invoked\n");
-  ptr = (void *) vma->vm_private_data; // retreive ptr to data struct state
+  ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
   atomic_inc(&(ptr->counter));
 }
 
@@ -112,8 +112,7 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   wrapper * cursor;
   wrapper * t;
   printk(KERN_INFO "paging_vma_close() invoked\n");
-  ptr = (void *) vma->vm_private_data; // retreive ptr to data struct state
-  printk(KERN_INFO "paging_vma_close(): state.counter is %d\n", atomic_read(&(ptr->counter)));
+  ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
   if (atomic_dec_and_test(&(ptr->counter))) { // counter now is 0
     // free dynamically allocated mem (__free_page and kfree)
     list_for_each_entry_safe(cursor, t, &(ptr->starter),node) {

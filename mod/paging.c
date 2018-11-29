@@ -46,6 +46,7 @@ atomic_t free_page; // increment every time free struct page
  */
 static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   int i;
+  state * ptr;
   printk(KERN_INFO "paging_vma_fault() invoked: took a page fault at VA 0x%lx\n", fault_address);
 
   // alloc page of physical memory
@@ -63,8 +64,9 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
     temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
     //assign temp_page to the pointer that refereces one page in the Link
     temp_wrapper_ptr->ptr = page;
+    ptr = (void *) vma->vm_private_data; // retreive ptr to data struct state
     INIT_LIST_HEAD(&(temp_wrapper_ptr->node));
-    list_add(&(temp_wrapper_ptr->node), &((state *)(vma->vm_private_data))->starter);
+    list_add(&(temp_wrapper_ptr->node), &(ptr->starter));
     atomic_inc(&alloc_page);
     return VM_FAULT_NOPAGE; // success message
   }

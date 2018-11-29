@@ -9,6 +9,7 @@
 #include <linux/slab.h>
 #include <linux/memory.h>
 #include <linux/mm.h>
+#include <linux/list.h>
 
 #include <paging.h>
 
@@ -19,13 +20,14 @@ typedef struct{
 
 typedef struct{
     atomic_t counter;
-    struct wrapper * wrapperlist;
+    struct list_head starter;
 } state;
 
 
 struct page * temp_page;
 
 state * temp_state_ptr;
+wrapper *temp_wrapper_ptr;
 atomic_t alloc_page;
 atomic_t free_page;
 
@@ -46,13 +48,14 @@ do_fault(struct vm_area_struct * vma,
     i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(temp_page), PAGE_SIZE, vma->vm_page_prot);
     if(i == 0)
     {
-      temp_state_ptr = kmalloc(sizeof(*state), GFP_KERNEL);
-      temp_state_ptr->counter = 1;
-      temp_state_ptr->wrapperlist = kmalloc(sizeof(*wrapper),GFP_KERNEL);
-      temp_state_ptr->wrapperlist->ptr = temp_page;
+      temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
+      //assign temp_page to the pointer that refereces one page in the wrapper.
+      temp_wrapper_ptr->ptr = temp_page;
+      INIT_LIST_HEAD(&temp_wrapper_ptr.node);
       
-      
-      
+      //
+      list_add(&temp_wrapper_ptr.node, &vma->vm_private_data.starter);
+        
       return VM_FAULT_NOPAGE;
     }
     printk(KERN_ERR "Failure in updating process' page tables\n");
@@ -80,6 +83,8 @@ paging_vma_fault(struct vm_fault * vmf)
 static void
 paging_vma_open(struct vm_area_struct * vma)
 {
+    void *ptr = vma->vm_private_data;
+    atomic_inc(ptr->counter);
     printk(KERN_INFO "paging_vma_open() invoked\n");
 }
 
@@ -111,8 +116,12 @@ paging_mmap(struct file           * filp,
     /* setup the vma->vm_ops, so we can catch page faults */
     vma->vm_ops = &paging_vma_ops;
     
+    // intialized the state struct 
+    temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
+    temp_state_ptr->counter = 1;
+    INIT_LIST_HEAD(&temp_state_ptr.starter);
+    vma->vm_private_data = temp_state_ptr;
     
-
     printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",
         current->pid, vma->vm_start, vma->vm_end);
 

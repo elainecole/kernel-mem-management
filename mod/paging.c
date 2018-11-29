@@ -20,14 +20,14 @@
  *      file
  */
 
- typedef struct {
+ typedef struct { // linked list wrapper to handle physical mem
      struct page * ptr; // pointer to page
      struct list_head node; // list head
  } wrapper;
 
 typedef struct { // data structure to track what physical mem has been allocated for a process
   atomic_t counter; // atomic reference counter
-  struct list_head starter; // pointer to linked list of pages
+  struct list_head starter; // head of linked list of pages
 } state;
 
 struct page * page; // physical mem page ptr to allocate
@@ -60,11 +60,11 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
   if (i == 0) { // success page table update
     temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
-    //assign temp_page to the pointer that refereces one page in the Link
+    //assign temp_wrapper_ptr->ptr to the pointer that refereces page allocated
     temp_wrapper_ptr->ptr = page;
     ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
     INIT_LIST_HEAD(&(temp_wrapper_ptr->node));
-    list_add(&(temp_wrapper_ptr->node), &(ptr->starter));
+    list_add(&(temp_wrapper_ptr->node), &(ptr->starter)); // add to linked list
     atomic_inc(&alloc_page);
     return VM_FAULT_NOPAGE; // success message
   }
@@ -98,7 +98,7 @@ static void paging_vma_open(struct vm_area_struct * vma) {
   state * ptr;
   printk(KERN_INFO "paging_vma_open() invoked\n");
   ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
-  atomic_inc(&(ptr->counter));
+  atomic_inc(&(ptr->counter)); // inc reference counter
 }
 
 /*
@@ -114,12 +114,12 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   printk(KERN_INFO "paging_vma_close() invoked\n");
   ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
   if (atomic_dec_and_test(&(ptr->counter))) { // counter now is 0
-    // free dynamically allocated mem (__free_page and kfree)
-    list_for_each_entry_safe(cursor, t, &(ptr->starter),node) {
-       __free_page(cursor->ptr);
+    list_for_each_entry_safe(cursor, t, &(ptr->starter), node) {
+      // free dynamically allocated mem (__free_page and kfree) for each list entry
+       __free_page(cursor->ptr); // free physical mem
        atomic_inc(&free_page);
-       list_del(&(cursor->node));
-       kfree(cursor);
+       list_del(&(cursor->node)); // delete according list node
+       kfree(cursor); // free wrapper
      }
   }
 }
@@ -141,11 +141,11 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
   /* setup the vma->vm_ops, so we can catch page faults */
   vma->vm_ops = &paging_vma_ops;
 
-  // init state struct
+  // init state struct:
   temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
-  atomic_set(&(temp_state_ptr->counter), 1);
-  INIT_LIST_HEAD(&(temp_state_ptr->starter));
-  vma->vm_private_data = temp_state_ptr;
+  atomic_set(&(temp_state_ptr->counter), 1); // init reference counter
+  INIT_LIST_HEAD(&(temp_state_ptr->starter)); // init list
+  vma->vm_private_data = temp_state_ptr; // store state
 
   printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",
     current->pid, vma->vm_start, vma->vm_end);

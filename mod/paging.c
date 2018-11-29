@@ -19,6 +19,7 @@
  *      when processes try to allocate memory via device
  *      file
  */
+static uint demand_paging = 1;
 
  typedef struct {
      struct page * ptr; // pointer to page
@@ -188,6 +189,7 @@ static void kmod_paging_exit(void) {
   printk(KERN_INFO "Unloaded kmod_paging module\n");
 }
 
+module_param(demand_paging, uint, 0644);
 module_init(kmod_paging_init);
 module_exit(kmod_paging_exit);
 

@@ -35,7 +35,7 @@ struct State { // data structure to track what physical mem has been allocated f
 struct page * page; // physical mem page ptr to allocate
 
 state * temp_state_ptr;
-wrapper *temp_wrapper_ptr;
+Link *temp_Link_ptr;
 
 atomic_t alloc_page; // increment every time allocate new struct page
 atomic_t free_page; // increment every time free struct page
@@ -61,8 +61,8 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   // update process' page tables to map faulting virtual address to new physical address (page)
   i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
   if (i == 0) { // success page table update
-    temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
-    //assign temp_page to the pointer that refereces one page in the wrapper.
+    temp_wrapper_ptr = kmalloc(sizeof(Link), GFP_KERNEL);
+    //assign temp_page to the pointer that refereces one page in the Link
     temp_wrapper_ptr->ptr = page;
     INIT_LIST_HEAD(&temp_wrapper_ptr->node);
     list_add(&temp_wrapper_ptr->node, &vma->vm_private_data->starter);
@@ -111,8 +111,8 @@ static void paging_vma_open(struct vm_area_struct * vma) {
  */
 static void paging_vma_close(struct vm_area_struct * vma) {
   void * ptr;
-  wrapper *cursor;
-  wrapper *t;
+  Link *cursor;
+  Link *t;
   printk(KERN_INFO "paging_vma_close() invoked\n");
   printk(KERN_INFO "paging_vma_close(): state.counter is %d\n", atomic_read(&state.counter));
   ptr = vma->vm_private_data; // retreive ptr to data struct state

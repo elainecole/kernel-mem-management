@@ -1,0 +1,1 @@
+cmd_/home/warehouse/jessehuang/cse422s/kernel-mem-management/mod/paging.ko := arm-linux-gnueabihf-ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/warehouse/jessehuang/cse422s/kernel-mem-management/mod/paging.ko /home/warehouse/jessehuang/cse422s/kernel-mem-management/mod/paging.o /home/warehouse/jessehuang/cse422s/kernel-mem-management/mod/paging.mod.o ;  true

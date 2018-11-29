@@ -34,7 +34,7 @@ struct State { // data structure to track what physical mem has been allocated f
 struct page * page; // physical mem page ptr to allocate
 
 state * temp_state_ptr;
-wrapper * temp_Link_ptr;
+wrapper * temp_wrapper_ptr;
 
 atomic_t alloc_page; // increment every time allocate new struct page
 atomic_t free_page; // increment every time free struct page
@@ -117,7 +117,8 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   if (atomic_dec_and_test(&ptr->counter)) { // counter now is 0
     // free dynamically allocated mem (__free_page and kfree)
     list_for_each_entry_safe(cursor, t, &ptr->starter,node) {
-       __free_page(&cursor->list_del(&cursor->node);
+       __free_page(cursor->ptr);
+       list_del(&cursor->node);
        kfree(cursor);
      }
   }
@@ -142,7 +143,7 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
 
   // init state struct
   temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
-  temp_state_ptr->counter = 1; 
+  atomic_set(&temp_state_ptr->counter, 1);
   INIT_LIST_HEAD(&temp_state_ptr->starter);
   vma->vm_private_data = temp_state_ptr;
 

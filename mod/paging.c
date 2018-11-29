@@ -49,7 +49,6 @@ do_fault(struct vm_area_struct * vma,
     if(i == 0)
     {
       temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
-      //assign temp_page to the pointer that refereces one page in the wrapper.
       temp_wrapper_ptr->ptr = temp_page;
       INIT_LIST_HEAD(&temp_wrapper_ptr->node);
       list_add(&temp_wrapper_ptr->node, &vma->vm_private_data->starter);
@@ -97,7 +96,7 @@ paging_vma_close(struct vm_area_struct * vma)
     {
          list_for_each_entry_safe(cursor, t, &ptr->starter,node)
          {
-           __free_page(&cursor->
+           __free_page(cursor->ptr);
            list_del(&cursor->node);
            kfree(cursor); 
          }

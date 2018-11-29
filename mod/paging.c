@@ -26,14 +26,14 @@
      struct list_head node; // list head
  } wrapper;
 
-struct State { // data structure to track what physical mem has been allocated for a process
+typedef struct { // data structure to track what physical mem has been allocated for a process
   atomic_t counter; // atomic reference counter
   struct list_head starter; // pointer to linked list of pages
 } state;
 
 struct page * page; // physical mem page ptr to allocate
 
-struct state * temp_state_ptr;
+state * temp_state_ptr;
 wrapper * temp_wrapper_ptr;
 
 atomic_t alloc_page; // increment every time allocate new struct page

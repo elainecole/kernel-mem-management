@@ -118,6 +118,7 @@ static void paging_vma_close(struct vm_area_struct * vma) {
     // free dynamically allocated mem (__free_page and kfree)
     list_for_each_entry_safe(cursor, t, &(ptr->starter),node) {
        __free_page(cursor->ptr);
+       atomic_inc(&free_page);
        list_del(&(cursor->node));
        kfree(cursor);
      }

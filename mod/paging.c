@@ -24,18 +24,17 @@
  typedef struct {
      struct page * ptr; // pointer to page
      struct list_head node; // list head
- } Link;
+ } wrapper;
 
 struct State { // data structure to track what physical mem has been allocated for a process
   atomic_t counter; // atomic reference counter
-  atomic_t * page_alloc; // page allocated for process (so it can be freed)
-  struct Link * linked_list; // pointer to linked list
+  struct list_head starter; // pointer to linked list of pages
 } state;
 
 struct page * page; // physical mem page ptr to allocate
 
 state * temp_state_ptr;
-Link *temp_Link_ptr;
+wrapper * temp_Link_ptr;
 
 atomic_t alloc_page; // increment every time allocate new struct page
 atomic_t free_page; // increment every time free struct page
@@ -61,7 +60,7 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   // update process' page tables to map faulting virtual address to new physical address (page)
   i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
   if (i == 0) { // success page table update
-    temp_wrapper_ptr = kmalloc(sizeof(Link), GFP_KERNEL);
+    temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
     //assign temp_page to the pointer that refereces one page in the Link
     temp_wrapper_ptr->ptr = page;
     INIT_LIST_HEAD(&temp_wrapper_ptr->node);
@@ -100,7 +99,6 @@ static void paging_vma_open(struct vm_area_struct * vma) {
   printk(KERN_INFO "paging_vma_open() invoked\n");
   ptr = vma->vm_private_data; // retreive ptr to data struct state
   atomic_inc(&ptr->counter);
-  printk(KERN_INFO "paging_vma_open(): state.counter is now %d\n", atomic_read(&state.counter));
 }
 
 /*
@@ -111,8 +109,8 @@ static void paging_vma_open(struct vm_area_struct * vma) {
  */
 static void paging_vma_close(struct vm_area_struct * vma) {
   void * ptr;
-  Link *cursor;
-  Link *t;
+  wrapper * cursor;
+  wrapper * t;
   printk(KERN_INFO "paging_vma_close() invoked\n");
   printk(KERN_INFO "paging_vma_close(): state.counter is %d\n", atomic_read(&state.counter));
   ptr = vma->vm_private_data; // retreive ptr to data struct state
@@ -144,7 +142,7 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
 
   // init state struct
   temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
-  temp_state_ptr->counter = 1;
+  temp_state_ptr->counter = 1; 
   INIT_LIST_HEAD(&temp_state_ptr->starter);
   vma->vm_private_data = temp_state_ptr;
 
@@ -168,14 +166,6 @@ static struct miscdevice dev_handle = {
 /*** Kernel module initialization and teardown ***/
 static int kmod_paging_init(void) {
   int status;
-  atomic_set(&state.counter, 1); // init reference counter
-
-  // page = (page *) kmalloc(sizeof(page),  GFP_KERNEL);
-	// if (page == NULL) {
-	// 	printk("There was not enough kernel memory to allocate page");
-	// 	page = (page *) 0;
-	// 	return 0;
-	// }
 
   /* Create a character device to communicate with user-space via file I/O operations */
   status = misc_register(&dev_handle);

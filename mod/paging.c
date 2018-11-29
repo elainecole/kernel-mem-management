@@ -20,6 +20,9 @@
  *      file
  */
 
+ static unsigned int demand_paging = 1; // module param default: default 1 (demand paging)
+ module_param(demand_paging, uint, 0644); // module param: enable pre-paging by val 0, else demand
+
  typedef struct { // linked list wrapper to handle physical mem
      struct page * ptr; // pointer to page
      struct list_head node; // list head
@@ -52,7 +55,7 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   page = alloc_page(GFP_KERNEL);
 
   if (!page) { // still uninitialized
-    printk(KERN_ERR "Memory allocation fail\n");
+    printk(KERN_ERR "do_fault: memory allocation fail\n");
     return VM_FAULT_OOM;
   }
 
@@ -68,7 +71,7 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
     atomic_inc(&alloc_page);
     return VM_FAULT_NOPAGE; // success message
   }
-  printk(KERN_ERR "Failure in updating process' page tables\n");
+  printk(KERN_ERR "do_fault: failure in updating process' page tables\n");
   return VM_FAULT_SIGBUS;
 }
 
@@ -146,6 +149,16 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
   atomic_set(&(temp_state_ptr->counter), 1); // init reference counter
   INIT_LIST_HEAD(&(temp_state_ptr->starter)); // init list
   vma->vm_private_data = temp_state_ptr; // store state
+
+  if (demand_paging == 0) { // pre-paging enabled
+    // alloc page of physical memory
+    // page = alloc_pages(GFP_KERNEL, TODO mask);
+
+    // if (!page) { // still uninitialized
+    //   printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
+    //   return -ENOMEM;
+    // }
+  }
 
   printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",
     current->pid, vma->vm_start, vma->vm_end);

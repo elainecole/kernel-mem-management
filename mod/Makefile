@@ -5,7 +5,7 @@ INCLUDE_DIR=$(PWD)/../include
 EXTRA_CFLAGS += -DMODULE=1 -D__KERNEL__=1 -I$(INCLUDE_DIR)
 
 paging-objs := $(paging-y)
-obj-m := paging.o
+obj-m := paging.o pre.o
 
 PHONY: all
 

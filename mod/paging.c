@@ -9,7 +9,6 @@
 #include <linux/slab.h>
 #include <linux/memory.h>
 #include <linux/mm.h>
-
 #include <paging.h>
 
 /**
@@ -56,7 +55,6 @@ static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
     printk(KERN_ERR "Memory allocation fail\n");
     return VM_FAULT_OOM;
   }
-  atomic_inc(&alloc_page);
 
   // update process' page tables to map faulting virtual address to new physical address (page)
   i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);

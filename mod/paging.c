@@ -69,12 +69,10 @@ static unsigned int my_get_order(unsigned int value) {
  */
 static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   if (demand_paging == 0) { // pre-paging
-    printk(KERN_INFO "paging_vma_fault() invoked: with prepaging");
     return VM_FAULT_SIGBUS;
   } else { // demand paging
     int i;
     state * ptr;
-    printk(KERN_INFO "paging_vma_fault() invoked: took a page fault at VA 0x%lx\n", fault_address);
 
     // alloc page of physical memory
     page = alloc_page(GFP_KERNEL);

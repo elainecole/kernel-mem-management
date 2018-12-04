@@ -32,6 +32,7 @@
 
 const int num_expected_args = 2;
 const unsigned sqrt_of_UINT32_MAX = 65536;
+struct timeval start_map, end_map, start_mult, end_mult;
 
 static void *
 mmap_malloc(int    fd,
@@ -78,10 +79,13 @@ int main (int argc, char* argv[])
 
 	squared_size = matrix_size * matrix_size;
 
+	gettimeofday(&start_map, NULL);
     A = (double *)mmap_malloc(fd, sizeof(double) * squared_size);
     B = (double *)mmap_malloc(fd, sizeof(double) * squared_size);
     C = (double *)mmap_malloc(fd, sizeof(double) * squared_size);
+	gettimeofday(&end_map, NULL);
 
+	gettimeofday(&start_mult, NULL);
 	for (row = 0; row < matrix_size; row++) {
 		for (col = 0; col < matrix_size; col++) {
 			for (index = 0; index < matrix_size; index++){
@@ -89,8 +93,12 @@ int main (int argc, char* argv[])
 			}	
 		}
 	}
+	gettimeofday(&end_mult, NULL);
 
     printf("Multiplication done\n");
+	int map_time = (end_map.tv_sec * 1e6 + end_map.tv_usec) - (start_map.tv_sec * 1e6 + start_map.tv_usec);
+	int mult_time = (end_mult.tv_sec * 1e6 + end_mult.tv_usec) - (start_mult.tv_sec * 1e6 + start_mult.tv_usec);
+	printf("%d, %d", map_time, mult_time);
 
     return 0;
 }

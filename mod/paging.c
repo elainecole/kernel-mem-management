@@ -21,7 +21,6 @@
  */
 static uint demand_paging = 1;
 
- static unsigned int demand_paging = 1; // module param default: default 1 (demand paging)
  module_param(demand_paging, uint, 0644); // module param: enable pre-paging by val 0, else demand
 
  typedef struct { // linked list wrapper to handle physical mem
@@ -142,12 +141,11 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   wrapper * cursor;
   wrapper * t;
   unsigned int order;
-  int i;
-  page * pre_ptr;
   printk(KERN_INFO "paging_vma_close() invoked\n");
   if (demand_paging == 0) { // pre-paging
-    order = vma->vma_end - vma->vma_start;
-    pre_ptr = (page *) vma->vm_private_data; // retreive ptr to data struct state
+	page * pre_ptr;
+    order = vma->vm_end - vma->vm_start;
+    pre_ptr = (page *) (vma->vm_private_data); // retreive ptr to data struct state
     __free_pages(pre_ptr, my_get_order(order));
   } else { // demand paging
     ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state

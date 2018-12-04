@@ -209,8 +209,6 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
     vma->vm_private_data = temp_state_ptr; // store state
   }
 
-    current->pid, vma->vm_start, vma->vm_end);
-
   return 0;
 }
 

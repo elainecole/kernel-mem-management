@@ -58,6 +58,8 @@ int main (int argc, char* argv[])
 	unsigned index, row, col; //loop indicies
 	unsigned matrix_size, squared_size;
 	double *A, *B, *C;
+	FILE *fp;
+	char filename[1024];
 
 	if (argc != num_expected_args) {
 		printf("Usage: ./dense_mm <size of matrices>\n");
@@ -95,10 +97,13 @@ int main (int argc, char* argv[])
 	}
 	gettimeofday(&end_mult, NULL);
 
-    printf("Multiplication done\n");
 	int map_time = (end_map.tv_sec * 1e6 + end_map.tv_usec) - (start_map.tv_sec * 1e6 + start_map.tv_usec);
 	int mult_time = (end_mult.tv_sec * 1e6 + end_mult.tv_usec) - (start_mult.tv_sec * 1e6 + start_mult.tv_usec);
-	printf("%d, %d", map_time, mult_time);
+
+	snprintf(filename, sizeof(filename), "results/output%s.txt", argv[1]);
+	fopen(filename, "a");
+	fprintf(fp, "%d, %d", map_time, mult_time);
+	fclose(fp);
 
     return 0;
 }

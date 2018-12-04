@@ -70,8 +70,8 @@ static unsigned int my_get_order(unsigned int value) {
 static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
   if (demand_paging == 0) { // pre-paging
     printk(KERN_INFO "paging_vma_fault() invoked: with prepaging");
-    return -EFAULT; 
-  } else {
+    return -EFAULT;
+  } else { // demand paging
     int i;
     state * ptr;
     printk(KERN_INFO "paging_vma_fault() invoked: took a page fault at VA 0x%lx\n", fault_address);
@@ -165,6 +165,7 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
    * with other VMAs, etc.)
    */
   unsigned int order;
+  int i;
   vma->vm_flags |= VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE
     | VM_DONTDUMP | VM_PFNMAP;
 
@@ -179,6 +180,12 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
     if (!page) { // still uninitialized
       printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
       return -ENOMEM;
+    }
+    i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
+    if (i == 0) { // success page table update
+
+    } else {
+      return -EFAULT;
     }
   } else { // demand paging
     // init state struct:

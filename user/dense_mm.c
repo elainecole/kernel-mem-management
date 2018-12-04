@@ -100,9 +100,9 @@ int main (int argc, char* argv[])
 	int map_time = (end_map.tv_sec * 1e6 + end_map.tv_usec) - (start_map.tv_sec * 1e6 + start_map.tv_usec);
 	int mult_time = (end_mult.tv_sec * 1e6 + end_mult.tv_usec) - (start_mult.tv_sec * 1e6 + start_mult.tv_usec);
 
-	snprintf(filename, sizeof(filename), "results/output%s.txt", argv[1]);
+	snprintf(filename, sizeof(filename), "results/output%s.csv", argv[1]);
 	fp = fopen(filename, "a");
-	fprintf(fp, "%d, %d", map_time, mult_time);
+	fprintf(fp, "%d, %d\n", map_time, mult_time);
 	fclose(fp);
 
     return 0;

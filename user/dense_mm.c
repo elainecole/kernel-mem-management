@@ -101,7 +101,7 @@ int main (int argc, char* argv[])
 	int mult_time = (end_mult.tv_sec * 1e6 + end_mult.tv_usec) - (start_mult.tv_sec * 1e6 + start_mult.tv_usec);
 
 	snprintf(filename, sizeof(filename), "results/output%s.txt", argv[1]);
-	fopen(filename, "a");
+	fp = fopen(filename, "a");
 	fprintf(fp, "%d, %d", map_time, mult_time);
 	fclose(fp);
 

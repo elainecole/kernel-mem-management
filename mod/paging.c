@@ -140,16 +140,25 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   state * ptr;
   wrapper * cursor;
   wrapper * t;
+  unsigned int order;
+  int i;
+  page * pre_ptr;
   printk(KERN_INFO "paging_vma_close() invoked\n");
-  ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
-  if (atomic_dec_and_test(&(ptr->counter))) { // counter now is 0
-    list_for_each_entry_safe(cursor, t, &(ptr->starter), node) {
-      // free dynamically allocated mem (__free_page and kfree) for each list entry
-       __free_page(cursor->ptr); // free physical mem
-       atomic_inc(&free_page);
-       list_del(&(cursor->node)); // delete according list node
-       kfree(cursor); // free wrapper
-     }
+  if (demand_paging == 0) { // pre-paging
+    order = vma->vma_end - vma->vma_start;
+    pre_ptr = (page *) vma->vm_private_data; // retreive ptr to data struct state
+    __free_pages(pre_ptr, my_get_order(order));
+  } else { // demand paging
+    ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
+    if (atomic_dec_and_test(&(ptr->counter))) { // counter now is 0
+      list_for_each_entry_safe(cursor, t, &(ptr->starter), node) {
+        // free dynamically allocated mem (__free_page and kfree) for each list entry
+         __free_page(cursor->ptr); // free physical mem
+         atomic_inc(&free_page);
+         list_del(&(cursor->node)); // delete according list node
+         kfree(cursor); // free wrapper
+       }
+    }
   }
 }
 
@@ -181,6 +190,8 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
       printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
       return -ENOMEM;
     }
+    vma->vm_private_data = page; // pass in pointer
+
     i = remap_pfn_range(vma, PAGE_ALIGN(vma->vma_start), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
     if (i == 0) { // success page table update
     } else {

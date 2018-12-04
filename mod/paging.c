@@ -42,37 +42,63 @@ atomic_t alloc_page; // increment every time allocate new struct page
 atomic_t free_page; // increment every time free struct page
 
 /*
+ * my_get_order()
+ *    taken from studio 12
+ */
+static unsigned int my_get_order(unsigned int value) {
+    unsigned int shifts = 0;
+
+    if (!value)
+        return 0;
+
+    if (!(value & (value - 1)))
+        value--;
+
+    while (value > 0) {
+        value >>= 1;
+        shifts++;
+    }
+
+    return shifts;
+}
+
+/*
  * do_fault()
  *    allocs new page of physical mem and updates
  *    process' page tables
  */
 static int do_fault(struct vm_area_struct * vma, unsigned long fault_address) {
-  int i;
-  state * ptr;
-  printk(KERN_INFO "paging_vma_fault() invoked: took a page fault at VA 0x%lx\n", fault_address);
+  if (demand_paging == 0) { // pre-paging
+    printk(KERN_INFO "paging_vma_fault() invoked: with prepaging");
+    return -EFAULT; 
+  } else {
+    int i;
+    state * ptr;
+    printk(KERN_INFO "paging_vma_fault() invoked: took a page fault at VA 0x%lx\n", fault_address);
 
-  // alloc page of physical memory
-  page = alloc_page(GFP_KERNEL);
+    // alloc page of physical memory
+    page = alloc_page(GFP_KERNEL);
 
-  if (!page) { // still uninitialized
-    printk(KERN_ERR "do_fault: memory allocation fail\n");
-    return VM_FAULT_OOM;
+    if (!page) { // still uninitialized
+      printk(KERN_ERR "do_fault: memory allocation fail\n");
+      return VM_FAULT_OOM;
+    }
+
+    // update process' page tables to map faulting virtual address to new physical address (page)
+    i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
+    if (i == 0) { // success page table update
+      temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
+      //assign temp_wrapper_ptr->ptr to the pointer that refereces page allocated
+      temp_wrapper_ptr->ptr = page;
+      ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
+      INIT_LIST_HEAD(&(temp_wrapper_ptr->node));
+      list_add(&(temp_wrapper_ptr->node), &(ptr->starter)); // add to linked list
+      atomic_inc(&alloc_page);
+      return VM_FAULT_NOPAGE; // success message
+    }
+    printk(KERN_ERR "do_fault: failure in updating process' page tables\n");
+    return VM_FAULT_SIGBUS;
   }
-
-  // update process' page tables to map faulting virtual address to new physical address (page)
-  i = remap_pfn_range(vma, PAGE_ALIGN(fault_address), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
-  if (i == 0) { // success page table update
-    temp_wrapper_ptr = kmalloc(sizeof(wrapper), GFP_KERNEL);
-    //assign temp_wrapper_ptr->ptr to the pointer that refereces page allocated
-    temp_wrapper_ptr->ptr = page;
-    ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
-    INIT_LIST_HEAD(&(temp_wrapper_ptr->node));
-    list_add(&(temp_wrapper_ptr->node), &(ptr->starter)); // add to linked list
-    atomic_inc(&alloc_page);
-    return VM_FAULT_NOPAGE; // success message
-  }
-  printk(KERN_ERR "do_fault: failure in updating process' page tables\n");
-  return VM_FAULT_SIGBUS;
 }
 
 /*
@@ -138,26 +164,28 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
   /* prevent Linux from mucking with our VMA (expanding it, merging it
    * with other VMAs, etc.)
    */
+  unsigned int order;
   vma->vm_flags |= VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE
     | VM_DONTDUMP | VM_PFNMAP;
 
   /* setup the vma->vm_ops, so we can catch page faults */
   vma->vm_ops = &paging_vma_ops;
 
-  // init state struct:
-  temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
-  atomic_set(&(temp_state_ptr->counter), 1); // init reference counter
-  INIT_LIST_HEAD(&(temp_state_ptr->starter)); // init list
-  vma->vm_private_data = temp_state_ptr; // store state
-
   if (demand_paging == 0) { // pre-paging enabled
     // alloc page of physical memory
-    // page = alloc_pages(GFP_KERNEL, TODO mask);
+    order = vma->vma_end - vma->vma_start;
+    page = alloc_pages(GFP_KERNEL, my_get_order(order));
 
-    // if (!page) { // still uninitialized
-    //   printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
-    //   return -ENOMEM;
-    // }
+    if (!page) { // still uninitialized
+      printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
+      return -ENOMEM;
+    }
+  } else { // demand paging
+    // init state struct:
+    temp_state_ptr = kmalloc(sizeof(state), GFP_KERNEL);
+    atomic_set(&(temp_state_ptr->counter), 1); // init reference counter
+    INIT_LIST_HEAD(&(temp_state_ptr->starter)); // init list
+    vma->vm_private_data = temp_state_ptr; // store state
   }
 
   printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",

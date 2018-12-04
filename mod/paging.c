@@ -144,7 +144,7 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   struct page * pre_ptr;
   printk(KERN_INFO "paging_vma_close() invoked\n");
   if (demand_paging == 0) { // pre-paging
-    order = vma->vm_end - vma->vm_start;
+    order = (vma->vm_end - vma->vm_start) / PAGE_SIZE;
     pre_ptr = vma->vm_private_data; // retreive ptr to data struct state
     __free_pages(pre_ptr, my_get_order(order));
   } else { // demand paging
@@ -182,7 +182,7 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
 
   if (demand_paging == 0) { // pre-paging enabled
     // alloc page of physical memory
-    order = vma->vm_end - vma->vm_start;
+    order = (vma->vm_end - vma->vm_start) / PAGE_SIZE;
     page = alloc_pages(GFP_KERNEL, my_get_order(order));
 
     if (!page) { // still uninitialized

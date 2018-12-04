@@ -125,7 +125,6 @@ static int paging_vma_fault(struct vm_fault * vmf) {
  */
 static void paging_vma_open(struct vm_area_struct * vma) {
   state * ptr;
-  printk(KERN_INFO "paging_vma_open() invoked\n");
   ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
   atomic_inc(&(ptr->counter)); // inc reference counter
 }
@@ -142,7 +141,6 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   wrapper * cursor;
   wrapper * t;
   struct page * pre_ptr;
-  printk(KERN_INFO "paging_vma_close() invoked\n");
   if (demand_paging == 0) { // pre-paging
     order = (vma->vm_end - vma->vm_start) / PAGE_SIZE;
 	if((vma->vm_end - vma->vm_start) % PAGE_SIZE != 0){
@@ -194,7 +192,6 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
     atomic_inc(&alloc_page);
 
     if (!page) { // still uninitialized
-      printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
       return -ENOMEM;
     }
     vma->vm_private_data = page; // pass in pointer
@@ -212,7 +209,6 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
     vma->vm_private_data = temp_state_ptr; // store state
   }
 
-  printk(KERN_INFO "paging_mmap() invoked: new VMA for pid %d from VA 0x%lx to 0x%lx\n",
     current->pid, vma->vm_start, vma->vm_end);
 
   return 0;

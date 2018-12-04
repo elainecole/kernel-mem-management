@@ -145,8 +145,12 @@ static void paging_vma_close(struct vm_area_struct * vma) {
   printk(KERN_INFO "paging_vma_close() invoked\n");
   if (demand_paging == 0) { // pre-paging
     order = (vma->vm_end - vma->vm_start) / PAGE_SIZE;
+	if((vma->vm_end - vma->vm_start) % PAGE_SIZE != 0){
+		order ++;
+	}
     pre_ptr = vma->vm_private_data; // retreive ptr to data struct state
     __free_pages(pre_ptr, my_get_order(order));
+	atomic_inc(&free_page);
   } else { // demand paging
     ptr = (state *) vma->vm_private_data; // retreive ptr to data struct state
     if (atomic_dec_and_test(&(ptr->counter))) { // counter now is 0
@@ -183,17 +187,19 @@ static int paging_mmap(struct file * filp, struct vm_area_struct * vma) {
   if (demand_paging == 0) { // pre-paging enabled
     // alloc page of physical memory
     order = (vma->vm_end - vma->vm_start) / PAGE_SIZE;
+	if((vma->vm_end - vma->vm_start) % PAGE_SIZE != 0){
+		order++;	
+	}
     page = alloc_pages(GFP_KERNEL, my_get_order(order));
+    atomic_inc(&alloc_page);
 
-	printk("foooo order:%u", order);
-	printk("mygetorder: %u vm_end: %lu vm_start: %lu", my_get_order(order), vma->vm_end, vma->vm_start);
     if (!page) { // still uninitialized
       printk(KERN_ERR "paging_mmap(): memory allocation fail in pre-paging\n");
       return -ENOMEM;
     }
     vma->vm_private_data = page; // pass in pointer
 
-    i = remap_pfn_range(vma, PAGE_ALIGN(vma->vm_start), page_to_pfn(page), PAGE_SIZE, vma->vm_page_prot);
+    i = remap_pfn_range(vma, PAGE_ALIGN(vma->vm_start), page_to_pfn(page), PAGE_SIZE * order, vma->vm_page_prot);
     if (i == 0) { // success page table update
     } else {
       return -EFAULT;

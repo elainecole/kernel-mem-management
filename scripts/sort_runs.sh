@@ -1,7 +1,8 @@
 #!/bin/bash
 # Run this file from the project root with: sudo ./scripts/dense_runs.sh
 
-sizes=( 64 128 256 512 )
+# Matrix multiply requires 3x^2 as much memory as quicksort, so the sizes are adjusted for this
+sizes=( 12288 49152 196608 786432 )
 
 for i in "${sizes[@]}"; do
 	echo map_time, mult_time > results/output$i.csv;

@@ -117,7 +117,7 @@ int main( int argc, char* argv[] ){
 	int fd;
 	unsigned index; //loop indicies
 	unsigned array_size;
-	double *A;
+	double *A, *B, *C;
 	FILE *fp;
 	char filename[1024];
 
@@ -136,20 +136,34 @@ int main( int argc, char* argv[] ){
 	
 	gettimeofday(&start_map, NULL);
 	A = (double*) mmap_malloc(fd, sizeof(double) * array_size );
+	B = (double*) mmap_malloc(fd, sizeof(double) * array_size );
+	C = (double*) mmap_malloc(fd, sizeof(double) * array_size );
 	gettimeofday(&end_map, NULL);
 
 	gettimeofday(&start_sort, NULL);
 	for( index = 0; index < array_size; index++ ){
 		A[index] = (double) rand();
+		B[index] = (double) rand();
+		C[index] = (double) rand();
 	}
 
 	quicksort( A, 0, array_size);
+	quicksort( B, 0, array_size);
+	quicksort( C, 0, array_size);
 
 	#ifdef VERIFY_CORRECT
 	for( index = 0; index < (array_size - 1); index++)
 		if( !(A[index] <= A[index + 1]) ){
 			//Array is not sorted
 			error_quit(A, array_size, index);
+		}
+		if( !(B[index] <= B[index + 1]) ){
+			//Array is not sorted
+			error_quit(B, array_size, index);
+		}
+		if( !(C[index] <= C[index + 1]) ){
+			//Array is not sorted
+			error_quit(C, array_size, index);
 		}
 	#endif 
 	gettimeofday(&end_sort, NULL);

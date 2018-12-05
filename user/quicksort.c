@@ -31,23 +31,23 @@
 const int num_expected_args = 2;
 struct timeval start_map, end_map, start_sort, end_sort;
 
-//static void *
-//mmap_malloc(int    fd,
-//            size_t bytes)
-//{
-//
-//    void * data;
-//
-//    data = mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-//    if (data == MAP_FAILED) {
-//        fprintf(stderr, "Could not mmap " DEV_NAME ": %s\n", strerror(errno));
-//        return NULL;
-//    }
-//
-//    return data;
-//
-//    //return malloc(bytes);
-//}
+static void *
+mmap_malloc(int    fd,
+            size_t bytes)
+{
+
+    void * data;
+
+    data = mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (data == MAP_FAILED) {
+        fprintf(stderr, "Could not mmap " DEV_NAME ": %s\n", strerror(errno));
+        return NULL;
+    }
+
+    return data;
+
+    //return malloc(bytes);
+}
 
 // Uncomment the following #define statement to turn on verification that the
 // array is sorted. If the array is correct, the program will exit normally.
@@ -114,6 +114,7 @@ void error_quit( double *A, unsigned end, unsigned location){
 
 int main( int argc, char* argv[] ){
 
+	int fd;
 	unsigned index; //loop indicies
 	unsigned array_size;
 	double *A;
@@ -126,9 +127,15 @@ int main( int argc, char* argv[] ){
 	}
 
 	array_size = atoi(argv[1]);
+
+    fd = open(DEV_NAME, O_RDWR);
+    if (fd == -1) {
+        fprintf(stderr, "Could not open " DEV_NAME ": %s\n", strerror(errno));
+        return -1;
+    }
 	
 	gettimeofday(&start_map, NULL);
-	A = (double*) malloc( sizeof(double) * array_size );
+	A = (double*) mmap_malloc(fd, sizeof(double) * array_size );
 	gettimeofday(&end_map, NULL);
 
 	gettimeofday(&start_sort, NULL);

@@ -71,7 +71,7 @@ def plot_pts():
 
             plt.figure()
             plt.xlabel('Size')
-            plt.ylabel('Time (log(microseconds))')
+            plt.ylabel('Time (microseconds)')
             title = 'Quicksort {} paging sorting runtimes'.format(folder.replace('_sort', ''))
             plt.title(title)
             plt.errorbar(values, mult_times[0], yerr=mult_times[1], fmt='o-')
@@ -81,7 +81,7 @@ def plot_pts():
 
             plt.figure()
             plt.xlabel('Size')
-            plt.ylabel('Time (log(microseconds))')
+            plt.ylabel('Time (microseconds)')
             title = 'Quicksort {} paging total runtimes'.format(folder.replace('_sort', ''))
             plt.title(title)
             plt.errorbar(values, total_times[0], yerr=total_times[1], fmt='o-')
@@ -100,7 +100,7 @@ def plot_pts():
 
             plt.figure()
             plt.xlabel('Size')
-            plt.ylabel('Time (log(microseconds))')
+            plt.ylabel('Time (microseconds)')
             plt.yscale('log')
             title = 'Matrix Multiplication {} paging multiplication runtimes'.format(folder)
             plt.title(title)
@@ -111,7 +111,7 @@ def plot_pts():
 
             plt.figure()
             plt.xlabel('Size')
-            plt.ylabel('Time (log(microseconds))')
+            plt.ylabel('Time (microseconds)')
             plt.yscale('log')
             title = 'Matrix Multiplication {} paging total runtimes'.format(folder)
             plt.title(title)
